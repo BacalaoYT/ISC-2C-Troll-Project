@@ -1,49 +1,105 @@
-//proyectotroll  
-#include <iostream>
-using namespace std;
+// proyectotroll 
 
-// Funcion recursiva que calcula cuantas veces se rompe la cadena
-int contarRupturas(int fuerzaHobbit, int eslabones) {
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define LIMITE_RECURSION 10000
+
+// Funcion recursiva protegida contra desbordamiento
+int contarRupturas(int fuerzaHobbit, int eslabones, int profundidad) {
+    if (fuerzaHobbit <= 0) return -1;  // fuerza invalida
+
+    if (profundidad > LIMITE_RECURSION) return -2; // evitar recursion infinita
+
     int capacidadEnano = 2 * fuerzaHobbit;
 
-    // Caso base: Si el segmento es menor o igual a lo que puede cargar un enano, no se rompe
     if (eslabones <= capacidadEnano) {
         return 0;
     }
 
-    // Dividir el segmento en proporcion 2:1
-    int partePequena = eslabones / 3;           // 1/3 del total
-    int parteGrande = eslabones - partePequena; // 2/3 + sobrantes, si los hay
+    int partePequena = eslabones / 3;
+    if (partePequena < 1) partePequena = 1;
+    int parteGrande = eslabones - partePequena;
 
-    // Se rompe una vez, y se suma la recursion de ambos fragmentos
-    return 1 + contarRupturas(fuerzaHobbit, parteGrande)
-             + contarRupturas(fuerzaHobbit, partePequena);
+    return 1
+        + contarRupturas(fuerzaHobbit, parteGrande, profundidad + 1)
+        + contarRupturas(fuerzaHobbit, partePequena, profundidad + 1);
 }
 
 int main() {
-    int fuerza, longitud;
-    int caso = 1;
+    FILE *archivoEntrada;
+    FILE *archivoSalida;
+    FILE *archivoPrevio;
+    char respuesta[10];
+    char linea[256];
+    int fuerza, longitud, caso = 1;
 
-    cout << "=== Transporte de cadenas por hobbits y enanos ===\n";
-    cout << "Introduce pares de numeros separados por espacio:\n";
-    cout << "- Primer número: fuerza de un hobbit (numero maximo de eslabones que puede cargar)\n";
-    cout << "- Segundo numero: longitud de la cadena a transportar\n";
-    cout << "- Introduce 0 0 para terminar.\n\n";
+    printf("=== Proyecto Troll  ===\n");
 
-    while (true) {
-        cout << "Caso #" << caso << " - Ingresa fuerza y longitud: ";
-        cin >> fuerza >> longitud;
+    archivoPrevio = fopen("salida.txt", "r");
+    if (archivoPrevio != NULL) {
+        printf("Se encontró un archivo de resultados anteriores.\n");
+        printf("¿Deseas usarlo? (s/n): ");
+        fflush(stdout);
+        fgets(respuesta, sizeof(respuesta), stdin);
 
-        if (fuerza == 0 && longitud == 0)
-            break;
+        if (respuesta[0] == 's' || respuesta[0] == 'S') {
+            printf("\n=== Resultados anteriores ===\n");
+            rewind(archivoPrevio);
+            while (fgets(linea, sizeof(linea), archivoPrevio)) {
+                printf("%s", linea);
+            }
+            fclose(archivoPrevio);
+            return 0;
+        }
+        fclose(archivoPrevio);
+    }
 
-        int rupturas = contarRupturas(fuerza, longitud);
+    archivoEntrada = fopen("entrada.txt", "r");
+    if (archivoEntrada == NULL) {
+        printf("Error: no se pudo abrir 'entrada.txt'. Verifica que exista.\n");
+        return 1;
+    }
 
-        cout << "Resultado -> Numero de eslabones que deben romperse: " << rupturas << "\n\n";
+    archivoSalida = fopen("salida.txt", "w");
+    if (archivoSalida == NULL) {
+        printf("Error: no se pudo crear 'salida.txt'.\n");
+        fclose(archivoEntrada);
+        return 1;
+    }
+
+    fprintf(archivoSalida, "=== Resultados del Proyecto Troll ===\n");
+
+    while (fgets(linea, sizeof(linea), archivoEntrada)) {
+        // Ignorar líneas vacías o que inicien con #
+        if (linea[0] == '\n' || linea[0] == '#') continue;
+
+        int leidos = sscanf(linea, "%d %d", &fuerza, &longitud);
+        if (leidos != 2 || fuerza < 0 || longitud < 0) {
+            fprintf(archivoSalida, "Caso #%d - Línea invalida o con datos negativos.\n", caso++);
+            continue;
+        }
+
+        if (fuerza == 0 && longitud == 0) break;
+
+        int rupturas = contarRupturas(fuerza, longitud, 0);
+
+        if (rupturas == -1) {
+            fprintf(archivoSalida, "Caso #%d - Fuerza invalida (cero o negativa).\n", caso);
+        } else if (rupturas == -2) {
+            fprintf(archivoSalida, "Caso #%d - Demasiada recursion (posible ciclo infinito).\n", caso);
+        } else {
+            fprintf(archivoSalida, "Caso #%d - Fuerza: %d, Longitud: %d => Eslabones rotos: %d\n",
+                    caso, fuerza, longitud, rupturas);
+        }
+
         caso++;
     }
 
-    cout << "SALIENDO SISTEMA! \n";
+    fclose(archivoEntrada);
+    fclose(archivoSalida);
+
+    printf("Proceso terminado. Resultados guardados en 'salida.txt'.\n");
     return 0;
 }
-
