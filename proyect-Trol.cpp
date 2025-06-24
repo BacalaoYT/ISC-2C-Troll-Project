@@ -20,3 +20,30 @@ int contarRupturas(int fuerzaHobbit, int eslabones) {
              + contarRupturas(fuerzaHobbit, partePequena);
 }
 
+int main() {
+    int fuerza, longitud;
+    int caso = 1;
+
+    cout << "=== Transporte de cadenas por hobbits y enanos ===\n";
+    cout << "Introduce pares de numeros separados por espacio:\n";
+    cout << "- Primer número: fuerza de un hobbit (numero maximo de eslabones que puede cargar)\n";
+    cout << "- Segundo numero: longitud de la cadena a transportar\n";
+    cout << "- Introduce 0 0 para terminar.\n\n";
+
+    while (true) {
+        cout << "Caso #" << caso << " - Ingresa fuerza y longitud: ";
+        cin >> fuerza >> longitud;
+
+        if (fuerza == 0 && longitud == 0)
+            break;
+
+        int rupturas = contarRupturas(fuerza, longitud);
+
+        cout << "Resultado -> Numero de eslabones que deben romperse: " << rupturas << "\n\n";
+        caso++;
+    }
+
+    cout << "SALIENDO SISTEMA! \n";
+    return 0;
+}
+
