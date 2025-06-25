@@ -1,0 +1,7 @@
+[
+    {
+        "directory": "/mnt/data/placas",
+        "command": "g++ main.cpp -o placas -lallegro -lallegro_font -lallegro_ttf",
+        "file": "main.cpp"
+    }
+]
