@@ -1,5 +1,3 @@
-//proyecto troll
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -7,10 +5,28 @@
 
 using namespace std;
 
-// Simulacion de la funcion contarRupturas
+// Enumeracion para el resultado del caso
+enum EstadoCaso { CASO_VALIDO, FUERZA_INVALIDA, DEMASIADA_RECURSION, LINEA_INVALIDA };
+
+// Estructura para almacenar la informacion de cada caso
+struct InfoCaso {
+    int fuerza;
+    int longitud;
+    int rupturas;
+    EstadoCaso estado;
+    char* mensaje; // memoria dinamica para el mensaje
+};
+
+// Union para mostrar el resultado como texto o como codigo
+union ResultadoUnion {
+    EstadoCaso codigo;
+    const char* texto;
+};
+
+// Funcion recursiva ya existente
 int contarRupturas(int fuerza, int longitud, int profundidad) {
     if (fuerza <= 0) return -1;
-    if (profundidad > 1000) return -2; // Proteccion contra recursion infinita
+    if (profundidad > 1000) return -2; // Protección contra recursión infinita
     if (longitud <= fuerza) return 1;
     return 1 + contarRupturas(fuerza, longitud / 2, profundidad + 1);
 }
@@ -33,35 +49,54 @@ int main() {
         istringstream iss(linea);
         long long fuerza_ll, longitud_ll;
         string extra;
+        InfoCaso info;
+        info.mensaje = nullptr;
+
         // Leer fuerza y longitud, validar que sean numeros enteros positivos y no haya basura extra
         if (!(iss >> fuerza_ll >> longitud_ll) || (iss >> extra) ||
             fuerza_ll < 0 || longitud_ll < 0 ||
             fuerza_ll > LIMITE || longitud_ll > LIMITE) {
-            string msg = "Caso #" + to_string(caso++) + " - Linea invalida, contiene letras, numeros fuera de rango o datos extra.\n";
-            archivoSalida << msg;
-            cout << msg;
+            info.estado = LINEA_INVALIDA;
+            ResultadoUnion ru;
+            ru.texto = "Linea invalida, contiene letras, numeros fuera de rango o datos extra.";
+            string msg = "Caso #" + to_string(caso++) + " - " + ru.texto + "\n";
+            info.mensaje = new char[msg.size() + 1];
+            strcpy(info.mensaje, msg.c_str());
+            archivoSalida << info.mensaje;
+            cout << info.mensaje;
+            delete[] info.mensaje;
             continue;
         }
 
-        int fuerza = static_cast<int>(fuerza_ll);
-        int longitud = static_cast<int>(longitud_ll);
+        info.fuerza = static_cast<int>(fuerza_ll);
+        info.longitud = static_cast<int>(longitud_ll);
 
-        if (fuerza == 0 && longitud == 0) break;
+        if (info.fuerza == 0 && info.longitud == 0) break;
 
-        int rupturas = contarRupturas(fuerza, longitud, 0);
+        info.rupturas = contarRupturas(info.fuerza, info.longitud, 0);
 
+        ResultadoUnion ru;
         string msg;
-        if (rupturas == -1) {
-            msg = "Caso #" + to_string(caso) + " - Fuerza invalida (cero o negativa).\n";
-        } else if (rupturas == -2) {
-            msg = "Caso #" + to_string(caso) + " - Demasiada recursion (posible ciclo infinito).\n";
+        if (info.rupturas == -1) {
+            info.estado = FUERZA_INVALIDA;
+            ru.texto = "Fuerza invalida (cero o negativa).";
+            msg = "Caso #" + to_string(caso) + " - " + ru.texto + "\n";
+        } else if (info.rupturas == -2) {
+            info.estado = DEMASIADA_RECURSION;
+            ru.texto = "Demasiada recursion (posible ciclo infinito).";
+            msg = "Caso #" + to_string(caso) + " - " + ru.texto + "\n";
         } else {
-            msg = "Caso #" + to_string(caso) + " - Fuerza: " + to_string(fuerza)
-                + ", Longitud: " + to_string(longitud)
-                + " => Eslabones rotos: " + to_string(rupturas) + "\n";
+            info.estado = CASO_VALIDO;
+            ru.texto = "Eslabones rotos: ";
+            msg = "Caso #" + to_string(caso) + " - Fuerza: " + to_string(info.fuerza)
+                + ", Longitud: " + to_string(info.longitud)
+                + " => " + ru.texto + to_string(info.rupturas) + "\n";
         }
-        archivoSalida << msg;
-        cout << "Entrada: " << fuerza << " " << longitud << " | " << msg;
+        info.mensaje = new char[msg.size() + 1];
+        strcpy(info.mensaje, msg.c_str());
+        archivoSalida << "Entrada: " << info.fuerza << " " << info.longitud << " | " << info.mensaje;
+        cout << "Entrada: " << info.fuerza << " " << info.longitud << " | " << info.mensaje;
+        delete[] info.mensaje;
         caso++;
     }
 
