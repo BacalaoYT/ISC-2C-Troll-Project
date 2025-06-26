@@ -1,0 +1,16 @@
+Cedula: 1710034065
+Resultado: Formato invalido
+
+Cedula: 0926687855
+Resultado: Formato invalido
+
+Cedula: 1104680136
+Resultado: Formato invalido
+
+Cedula: 0106415392
+Resultado: Formato invalido
+
+Cedula: 0917588645
+Suma: 48, Residuo: 8, Resultado esperado: 2
+Resultado: Cedula invalida
+
