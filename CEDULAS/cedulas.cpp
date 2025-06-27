@@ -3,80 +3,86 @@
 #include <string>
 #include <cstring>
 #include <cstdio>
+#include <filesystem> // Agrega esto
 using namespace std;
 
-// Enumeracion para el resultado de la validacion
+// Resultado posible de la validacion
 enum ResultadoCedula { FORMATO_INVALIDO, CEDULA_VALIDA, CEDULA_INVALIDA };
 
-// Estructura para almacenar informacion de la cedula
+// Estructura para guardar los datos de una cedula
 struct InfoCedula {
-    char* numero; // memoria dinamica para la cedula
-    int suma;
-    int residuo;
-    int resultadoEsperado;
-    ResultadoCedula resultado;
+    char* numero;            // Cedula (memoria dinamica)
+    int suma;                // Suma de productos
+    int residuo;             // Modulo 10
+    int resultadoEsperado;   // Digito esperado
+    ResultadoCedula resultado; // Resultado final
 };
 
-// Union para mostrar el resultado como texto o como codigo
+// Union para mostrar texto o codigo del resultado
 union ResultadoUnion {
     ResultadoCedula codigo;
     const char* texto;
 };
 
-// Funcion para pedir una cedula por consola si el archivo esta vacio
+// Pide una cedula por consola si el archivo esta vacio
 void pedirCedulaPorConsola(string& cedula) {
-    cout << "El archivo cedula.txt esta vacio. Ingrese una cedula: ";
+    cout << "El archivo cedulass.txt esta vacio. Ingrese una cedula: ";
     getline(cin, cedula);
 }
 
-// Funcion recursiva para calcular la suma de los productos de los primeros 9 digitos
+// Funcion recursiva para calcular la suma con coeficientes
 int sumaRecursiva(const int* ced, const int* coef, int i) {
-    if (i == 9) return 0;
-    int mult = ced[i] * coef[i];
-    if (mult > 9) mult = (mult / 10) + (mult % 10);
-    return mult + sumaRecursiva(ced, coef, i + 1);
+    if (i == 9) return 0; // Base de la recursion
+    int mult = ced[i] * coef[i]; // Multiplica
+    if (mult > 9) mult = (mult / 10) + (mult % 10); // Si es doble digito, suma sus cifras
+    return mult + sumaRecursiva(ced, coef, i + 1); // Llamado recursivo
 }
 
-// Funcion que valida la cedula y calcula suma, residuo y digito esperado
+// Verifica si la cedula es valida segun reglas del Ecuador
 bool cedulaValida(int ced[], int& suma, int& residuo, int& result) {
-    int provincia = ced[0] * 10 + ced[1]; // Dos primeros digitos: provincia
-    if (provincia < 1 || provincia > 24) return false; // Provincia valida
-    if (ced[2] >= 6) return false; // Tercer digito menor que 6
-    int coef[] = {2, 1, 2, 1, 2, 1, 2, 1, 2}; // Coeficientes para calculo
-    suma = sumaRecursiva(ced, coef, 0); // Uso de funcion recursiva
-    residuo = suma % 10; // Residuo de la suma
-    result = (residuo == 0) ? 0 : 10 - residuo; // Digito verificador esperado
-    return ced[9] == result; // Compara con el ultimo digito
+    int provincia = ced[0] * 10 + ced[1]; // Provincia = dos primeros digitos
+    if (provincia < 1 || provincia > 24) return false;
+    if (ced[2] >= 6) return false;
+    int coef[] = {2, 1, 2, 1, 2, 1, 2, 1, 2}; // Coeficientes de validacion
+    suma = sumaRecursiva(ced, coef, 0); // Calcula suma recursiva
+    residuo = suma % 10; // Modulo 10
+    result = (residuo == 0) ? 0 : 10 - residuo; // Digito verificador
+    return ced[9] == result; // Compara con ultimo digito
 }
 
 int main() {
-    ifstream entrada("cedula.txt", ios::binary); // Archivo de entrada
-    ofstream salida("resultado.txt"); // Archivo de salida
+    // Imprime el directorio actual para depuracion
+    cout << "Directorio actual: " << std::filesystem::current_path() << endl;
 
-    if (!entrada) { // Si no se puede abrir el archivo de entrada
-        cout << "No se pudo abrir el archivo cedula.txt" << endl;
+    FILE* entrada = fopen("cedulass.txt", "r");
+    FILE* salida = fopen("resultado.txt", "w");
+
+    if (!entrada) {
+        cout << "No se pudo abrir el archivo cedulass.txt" << endl;
+        if (salida) fclose(salida);
         return 1;
     }
 
     // Verifica si el archivo esta vacio
-    entrada.seekg(0, ios::end);
-    if (entrada.tellg() == 0) {
-        entrada.close();
+    fseek(entrada, 0, SEEK_END);
+    long tam = ftell(entrada);
+    if (tam == 0) {
+        fclose(entrada);
         string cedula;
-        pedirCedulaPorConsola(cedula); // Pide cedula por consola
+        pedirCedulaPorConsola(cedula); // Pide desde consola
 
         InfoCedula info;
         info.numero = new char[11];
         strncpy(info.numero, cedula.c_str(), 10);
         info.numero[10] = '\0';
 
-        // Valida formato de la cedula ingresada
+        // Validar formato
         if (cedula.length() != 10 || cedula.find_first_not_of("0123456789") != string::npos) {
             info.resultado = FORMATO_INVALIDO;
         } else {
             int ced[10];
-            for (int i = 0; i < 10; i++) ced[i] = cedula[i] - '0'; // Convierte a enteros
-            bool valida = cedulaValida(ced, info.suma, info.residuo, info.resultadoEsperado); // Valida cedula
+            for (int i = 0; i < 10; i++) ced[i] = cedula[i] - '0';
+            bool valida = cedulaValida(ced, info.suma, info.residuo, info.resultadoEsperado);
             info.resultado = valida ? CEDULA_VALIDA : CEDULA_INVALIDA;
         }
 
@@ -87,39 +93,45 @@ int main() {
             case CEDULA_INVALIDA:  ru.texto = "Cedula invalida"; break;
         }
 
-        salida << "Cedula: " << info.numero;
+        // Muestra resultados
+        fprintf(salida, "Cedula: %s", info.numero);
         cout << "Cedula: " << info.numero;
         if (info.resultado == FORMATO_INVALIDO) {
-            salida << "\nResultado: " << ru.texto << "\n" << endl;
+            fprintf(salida, "\nResultado: %s\n\n", ru.texto);
             cout << "\nResultado: " << ru.texto << "\n" << endl;
         } else {
-            salida << "\nSuma: " << info.suma << ", Residuo: " << info.residuo << ", Resultado esperado: " << info.resultadoEsperado;
+            fprintf(salida, "\nSuma: %d, Residuo: %d, Resultado esperado: %d", info.suma, info.residuo, info.resultadoEsperado);
+            fprintf(salida, "\nResultado: %s\n\n", ru.texto);
+
             cout << "\nSuma: " << info.suma << ", Residuo: " << info.residuo << ", Resultado esperado: " << info.resultadoEsperado;
-            salida << "\nResultado: " << ru.texto << "\n" << endl;
             cout << "\nResultado: " << ru.texto << "\n" << endl;
         }
+
         delete[] info.numero;
-        salida.close();
+        fclose(salida);
         return 0;
     }
 
-    // Si el archivo no esta vacio, procesa cada linea
-    entrada.clear();
-    entrada.seekg(0, ios::beg);
-    string linea;
-    while (getline(entrada, linea)) {
+    // Si hay cedulas en el archivo, las procesa una por una
+    rewind(entrada);
+    char linea[64];
+    while (fgets(linea, sizeof(linea), entrada)) {
+        // Elimina salto de linea si existe
+        size_t len = strlen(linea);
+        if (len > 0 && (linea[len - 1] == '\n' || linea[len - 1] == '\r')) linea[len - 1] = '\0';
+
         InfoCedula info;
         info.numero = new char[11];
-        strncpy(info.numero, linea.c_str(), 10);
+        strncpy(info.numero, linea, 10);
         info.numero[10] = '\0';
 
-        // Valida formato de la linea
-        if (linea.length() != 10 || linea.find_first_not_of("0123456789") != string::npos) {
+        // Validacion de formato
+        if (strlen(linea) != 10 || strspn(linea, "0123456789") != 10) {
             info.resultado = FORMATO_INVALIDO;
         } else {
             int ced[10];
-            for (int i = 0; i < 10; i++) ced[i] = linea[i] - '0'; // Convierte a enteros
-            bool valida = cedulaValida(ced, info.suma, info.residuo, info.resultadoEsperado); // Valida cedula
+            for (int i = 0; i < 10; i++) ced[i] = linea[i] - '0';
+            bool valida = cedulaValida(ced, info.suma, info.residuo, info.resultadoEsperado);
             info.resultado = valida ? CEDULA_VALIDA : CEDULA_INVALIDA;
         }
 
@@ -130,22 +142,25 @@ int main() {
             case CEDULA_INVALIDA:  ru.texto = "Cedula invalida"; break;
         }
 
-        salida << "Cedula: " << info.numero;
+        // Muestra y guarda resultados
+        fprintf(salida, "Cedula: %s", info.numero);
         cout << "Cedula: " << info.numero;
         if (info.resultado == FORMATO_INVALIDO) {
-            salida << "\nResultado: " << ru.texto << "\n" << endl;
+            fprintf(salida, "\nResultado: %s\n\n", ru.texto);
             cout << "\nResultado: " << ru.texto << "\n" << endl;
         } else {
-            salida << "\nSuma: " << info.suma << ", Residuo: " << info.residuo << ", Resultado esperado: " << info.resultadoEsperado;
+            fprintf(salida, "\nSuma: %d, Residuo: %d, Resultado esperado: %d", info.suma, info.residuo, info.resultadoEsperado);
+            fprintf(salida, "\nResultado: %s\n\n", ru.texto);
+
             cout << "\nSuma: " << info.suma << ", Residuo: " << info.residuo << ", Resultado esperado: " << info.resultadoEsperado;
-            salida << "\nResultado: " << ru.texto << "\n" << endl;
             cout << "\nResultado: " << ru.texto << "\n" << endl;
         }
+
         delete[] info.numero;
     }
 
-    entrada.close();
-    salida.close();
+    fclose(entrada);
+    fclose(salida);
     return 0;
 }
-// Ahora puedes poner una cedula por linea, como 1717171717,
+// cedulass.txt para pruebas
