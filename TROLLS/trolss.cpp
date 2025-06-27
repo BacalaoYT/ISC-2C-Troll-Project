@@ -3,6 +3,7 @@
 #include <sstream>
 #include <string>
 
+
 using namespace std;
 
 // Enumeracion para el resultado del caso
@@ -32,30 +33,35 @@ int contarRupturas(int fuerza, int longitud, int contador) {
 }
 
 int main() {
-    ifstream archivoEntrada("entrada.txt"); // Archivo de entrada
-    ofstream archivoSalida("salida.txt");   // Archivo de salida
+    FILE* archivoEntrada = fopen("entrada.txt", "r"); // Archivo de entrada
+    FILE* archivoSalida = fopen("salida.txt", "w");   // Archivo de salida
 
-    if (!archivoEntrada.is_open() || !archivoSalida.is_open()) {
+    if (!archivoEntrada || !archivoSalida) {
         cerr << "No se pudo abrir archivo de entrada o salida." << endl;
+        if (archivoEntrada) fclose(archivoEntrada);
+        if (archivoSalida) fclose(archivoSalida);
         return 1;
     }
 
-    string linea;
+    char linea[256];
     int caso = 1;
     const int LIMITE = 1000000000; // Limite para los valores
 
-    while (getline(archivoEntrada, linea)) {
-        if (linea.empty() || linea[0] == '#') continue; // Ignora lineas vacias o comentarios
+    while (fgets(linea, sizeof(linea), archivoEntrada)) {
+        // Elimina salto de linea
+        size_t len = strlen(linea);
+        while (len > 0 && (linea[len - 1] == '\n' || linea[len - 1] == '\r')) linea[--len] = '\0';
 
-        istringstream iss(linea);
+        if (len == 0 || linea[0] == '#') continue; // Ignora lineas vacias o comentarios
+
         long long fuerza_ll, longitud_ll;
-        string extra;
+        char extra[32];
         InfoCaso info;
         info.mensaje = nullptr;
 
         // Validar entrada: deben ser dos numeros positivos y sin basura extra
-        if (!(iss >> fuerza_ll >> longitud_ll) || (iss >> extra) ||
-            fuerza_ll < 0 || longitud_ll < 0 ||
+        int n = sscanf(linea, "%lld %lld %31s", &fuerza_ll, &longitud_ll, extra);
+        if (n < 2 || fuerza_ll < 0 || longitud_ll < 0 ||
             fuerza_ll > LIMITE || longitud_ll > LIMITE) {
             info.estado = LINEA_INVALIDA;
             ResultadoUnion ru;
@@ -63,8 +69,8 @@ int main() {
             string msg = "Caso #" + to_string(caso++) + " - " + ru.texto + "\n";
             info.mensaje = new char[msg.size() + 1];
             strcpy(info.mensaje, msg.c_str());
-            archivoSalida << info.mensaje; // Escribe mensaje en archivo
-            cout << info.mensaje;          // Muestra mensaje en pantalla
+            fprintf(archivoSalida, "%s", info.mensaje); // Escribe mensaje en archivo
+            cout << info.mensaje;                       // Muestra mensaje en pantalla
             delete[] info.mensaje;
             continue;
         }
@@ -101,16 +107,16 @@ int main() {
         info.mensaje = new char[msg.size() + 1];
         strcpy(info.mensaje, msg.c_str());
 
-        archivoSalida << "Entrada: " << info.fuerza << " " << info.longitud << " | " << info.mensaje; // Guarda en archivo
-        cout << "Entrada: " << info.fuerza << " " << info.longitud << " | " << info.mensaje;         // Muestra en pantalla
+        fprintf(archivoSalida, "Entrada: %d %d | %s", info.fuerza, info.longitud, info.mensaje); // Guarda en archivo
+        cout << "Entrada: " << info.fuerza << " " << info.longitud << " | " << info.mensaje;     // Muestra en pantalla
 
         delete[] info.mensaje; // Libera memoria
         caso++;
     }
 
-    archivoEntrada.close();
-    archivoSalida.close();
+    fclose(archivoEntrada);
+    fclose(archivoSalida);
     return 0;
 }
 
-// Puedes poner casos en entrada.txt, ejemplo: 5// Puedes poner casos en entrada.txt, ejemplo: 5
+
